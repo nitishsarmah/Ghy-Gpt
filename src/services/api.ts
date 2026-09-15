@@ -1,5 +1,7 @@
 import { AttachedFile, GeneratedImageMetadata, NewsMode } from "../types";
 
+const API_BASE_URL = "https://ghy-gpt.onrender.com";
+
 export interface GenerateRequestPayload {
   prompt: string;
   systemInstruction?: string;
@@ -40,7 +42,7 @@ function extractCleanErrorMessage(raw: any, fallbackStatus?: number): string {
 export async function requestNewsGeneration(
   payload: GenerateRequestPayload
 ): Promise<string> {
-  const response = await fetch("/api/generate", {
+  const response = await fetch(`${API_BASE_URL}/api/generate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
