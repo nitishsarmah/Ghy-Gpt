@@ -1,6 +1,5 @@
-import { AttachedFile, GeneratedImageMetadata, NewsMode } from "../types";
-
-const API_BASE_URL = "https://ghy-gpt.onrender.com";
+import { AttachedFile, NewsMode } from "../types";
+import { structureNews } from "../utils/newsEngine";
 
 export interface GenerateRequestPayload {
   prompt: string;
@@ -16,85 +15,49 @@ export interface GenerateResponsePayload {
   mode?: NewsMode;
 }
 
-function extractCleanErrorMessage(raw: any, fallbackStatus?: number): string {
-  if (!raw) return fallbackStatus ? `Request failed (status ${fallbackStatus})` : "An error occurred";
-  let str = typeof raw === "string" ? raw : raw.error || raw.message || JSON.stringify(raw);
-  
-  // Try to parse nested JSON if present (e.g. {"error":{"message":"..."}})
-  try {
-    const jsonMatch = str.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed?.error?.message) {
-        return parsed.error.message;
-      }
-      if (parsed?.message) {
-        return parsed.message;
-      }
-    }
-  } catch {}
-
-  // Strip technical callstack or prefix
-  str = str.replace(/^ApiError:\s*/i, "").replace(/^Error:\s*/i, "");
-  return str;
-}
+/**
+ * GHY GPT OFFLINE ENGINE
+ *
+ * No Gemini
+ * No Render
+ * No API
+ * No internet request
+ *
+ * All newsroom processing happens locally on the device.
+ */
 
 export async function requestNewsGeneration(
   payload: GenerateRequestPayload
 ): Promise<string> {
-  const response = await fetch(`${API_BASE_URL}/api/generate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+  const prompt = payload.prompt?.trim();
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = extractCleanErrorMessage(errorData, response.status);
-    throw new Error(message);
+  if (!prompt) {
+    throw new Error("Please enter some news information.");
   }
 
-  const data: GenerateResponsePayload = await response.json();
-  return data.text;
+  const result = structureNews(prompt, "standard");
+
+  return result.fullText;
 }
 
-export async function requestNewsImage(params: {
-  prompt: string;
-  aspectRatio: string;
-  preset: string;
-}): Promise<GeneratedImageMetadata> {
-  const response = await fetch(`${API_BASE_URL}/api/generate-image`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(params),
-  });
+/**
+ * Image generation is not available in offline mode.
+ */
+export async function requestNewsImage(): Promise<never> {
+  throw new Error(
+    "Image generation is unavailable in Offline Mode."
+  );
+}
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = extractCleanErrorMessage(errorData, response.status);
-    throw new Error(message);
-  }
-
-  const data = await response.json();
+/**
+ * Always reports local/offline status.
+ */
+export async function checkServerHealth(): Promise<{
+  status: string;
+  hasApiKey: boolean;
+}> {
   return {
-    imageUrl: data.imageUrl,
-    aspectRatio: data.aspectRatio,
-    preset: data.preset,
-    prompt: data.prompt,
-    disclaimer: data.disclaimer || "Illustrative AI Image - Not a photograph of actual events",
+    status: "offline",
+    hasApiKey: false,
   };
-}
-
-export async function checkServerHealth(): Promise<{ status: string; hasApiKey: boolean }> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/health`)
-    if (!response.ok) return { status: "offline", hasApiKey: false };
-    return await response.json();
-  } catch {
-    return { status: "offline", hasApiKey: false };
-  }
 }
