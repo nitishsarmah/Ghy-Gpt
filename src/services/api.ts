@@ -65,7 +65,7 @@ export async function requestNewsImage(params: {
   aspectRatio: string;
   preset: string;
 }): Promise<GeneratedImageMetadata> {
-  const response = await fetch("/api/generate-image", {
+  const response = await fetch(`${API_BASE_URL}/api/generate-image`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -91,7 +91,7 @@ export async function requestNewsImage(params: {
 
 export async function checkServerHealth(): Promise<{ status: string; hasApiKey: boolean }> {
   try {
-    const response = await fetch("/api/health");
+    const response = await fetch(`${API_BASE_URL}/api/health`)
     if (!response.ok) return { status: "offline", hasApiKey: false };
     return await response.json();
   } catch {
